@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
+THRESHOLD = 0.65
+
 # ----------------------------------------------------------------------------
 # Feature schema (application-time information only)
 # ----------------------------------------------------------------------------
@@ -39,6 +41,18 @@ def _cat_to_str(s: pd.Series) -> pd.Series:
             return str(int(v)) if float(v).is_integer() else str(v)
         return str(v)
     return s.map(conv)
+
+
+def category_options(model):
+    """Return trained categorical vocabularies in a stable display order."""
+    pre = model.named_steps["preprocessor"]
+    categories = dict(zip(CATEGORICAL, pre.named_transformers_["cat"].categories_))
+    options = {}
+    for column, values in categories.items():
+        values = [str(value) for value in values]
+        options[column] = sorted(values, key=lambda value: (value == "Missing", 0 if value.lstrip("-").isdigit() else 1, int(value) if value.lstrip("-").isdigit() else value))
+        assert set(options[column]) == set(values)
+    return options
 
 
 def engineer_features(raw: pd.DataFrame) -> pd.DataFrame:
